@@ -26,14 +26,14 @@ public class TrilhaDAO {
     }
 
     public List<Trilha> listAll() {
-        String jpql = "SELECT f FROM Funcao AS f";
+        String jpql = "SELECT t FROM Trilha AS t";
         return this.em.
                 createQuery(jpql,Trilha.class)
                 .getResultList();
     }
 
     public List<Trilha> listByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT t FROM Trilha AS t WHERE t.nome=:nome";
         return this.em.
                 createQuery(jpql,Trilha.class)
                 .setParameter("nome",nome)
@@ -41,7 +41,7 @@ public class TrilhaDAO {
     }
 
     public Trilha findByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT t FROM Trilha AS t WHERE t.nome=:nome";
         return this.em.
                 createQuery(jpql,Trilha.class)
                 .setParameter("nome",nome)

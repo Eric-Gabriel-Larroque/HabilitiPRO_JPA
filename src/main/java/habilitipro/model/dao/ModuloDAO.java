@@ -26,14 +26,14 @@ public class ModuloDAO {
     }
 
     public List<Modulo> listAll() {
-        String jpql = "SELECT f FROM Funcao AS f";
+        String jpql = "SELECT m FROM Modulo AS m";
         return this.em.
                 createQuery(jpql,Modulo.class)
                 .getResultList();
     }
 
     public List<Modulo> listByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT m FROM Modulo AS m WHERE m.nome=:nome";
         return this.em.
                 createQuery(jpql,Modulo.class)
                 .setParameter("nome",nome)
@@ -41,7 +41,7 @@ public class ModuloDAO {
     }
 
     public Modulo findByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT m FROM Modulo AS m WHERE m.nome=:nome";
         return this.em.
                 createQuery(jpql,Modulo.class)
                 .setParameter("nome",nome)

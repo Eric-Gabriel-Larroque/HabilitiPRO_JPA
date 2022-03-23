@@ -27,14 +27,14 @@ public class SetorDAO {
     }
 
     public List<Setor> listAll() {
-        String jpql = "SELECT f FROM Funcao AS f";
+        String jpql = "SELECT s FROM Setor AS s";
         return this.em.
                 createQuery(jpql,Setor.class)
                 .getResultList();
     }
 
     public List<Setor> listByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT s FROM Setor AS s WHERE s.nome=:nome";
         return this.em.
                 createQuery(jpql,Setor.class)
                 .setParameter("nome",nome)
@@ -42,7 +42,7 @@ public class SetorDAO {
     }
 
     public Setor findByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT s FROM Setor AS s WHERE s.nome=:nome";
         return this.em.
                 createQuery(jpql,Setor.class)
                 .setParameter("nome",nome)

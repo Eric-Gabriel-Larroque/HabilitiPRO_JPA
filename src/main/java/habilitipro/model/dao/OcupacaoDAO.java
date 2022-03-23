@@ -26,14 +26,14 @@ public class OcupacaoDAO {
     }
 
     public List<Ocupacao> listAll() {
-        String jpql = "SELECT f FROM Funcao AS f";
+        String jpql = "SELECT o FROM Ocupacao AS o";
         return this.em.
                 createQuery(jpql,Ocupacao.class)
                 .getResultList();
     }
 
     public List<Ocupacao> listByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT o FROM Ocupacao AS o WHERE o.nome=:nome";
         return this.em.
                 createQuery(jpql,Ocupacao.class)
                 .setParameter("nome",nome)
@@ -41,7 +41,7 @@ public class OcupacaoDAO {
     }
 
     public Ocupacao findByName(String nome) {
-        String jpql = "SELECT f FROM Funcao AS f WHERE f.nome=:nome";
+        String jpql = "SELECT o FROM Ocupacao AS o WHERE o.nome=:nome";
         return this.em.
                 createQuery(jpql,Ocupacao.class)
                 .setParameter("nome",nome)

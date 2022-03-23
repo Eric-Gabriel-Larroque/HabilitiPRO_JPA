@@ -40,12 +40,12 @@ public class EmpresaDAO {
                 .getResultList();
     }
 
-    public Empresa findByName(String nome) {
-        String jpql = "SELECT e FROM Empresa AS e WHERE e.nome =:nome";
+    public Empresa findByCnpj(String cnpj) {
+        String jpql = "SELECT e FROM Empresa AS e WHERE e.cnpj =:cnpj";
 
         return this.em.
                 createQuery(jpql,Empresa.class)
-                .setParameter("nome",nome)
+                .setParameter("cnpj",cnpj)
                 .getSingleResult();
     }
 
