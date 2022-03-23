@@ -1,6 +1,5 @@
 package habilitipro.model.dao;
 
-import habilitipro.model.persistence.Trabalhador;
 import habilitipro.model.persistence.Trilha;
 
 import javax.persistence.EntityManager;
