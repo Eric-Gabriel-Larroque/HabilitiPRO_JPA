@@ -32,11 +32,11 @@ public class TrilhaDAO {
                 .getResultList();
     }
 
-    public List<Trilha> listByName(String nome) {
-        String jpql = "SELECT t FROM Trilha AS t WHERE t.nome=:nome";
+    public List<Trilha> listByApelido(String apelido) {
+        String jpql = "SELECT t FROM Trilha AS t WHERE t.apelido=:apelido";
         return this.em.
                 createQuery(jpql,Trilha.class)
-                .setParameter("nome",nome)
+                .setParameter("apelido",apelido)
                 .getResultList();
     }
 
