@@ -60,6 +60,7 @@ public class OcupacaoService {
     }
 
     public void update(Ocupacao newOcupacao, Long ocupacaoId) {
+        this.LOG.info("Preparando para atualização da ocupação...");
         validateNullId(ocupacaoId);
         validateNullOcupacao(newOcupacao);
         this.LOG.info("Validando existência de ocupação com o Id informado");
@@ -75,6 +76,7 @@ public class OcupacaoService {
                 commitAndClose();
                 return;
             }
+            validateDuplicate(newOcupacao);
             ocupacao.setNome(newOcupacao.getNome());
             commitAndClose();
 

@@ -61,6 +61,8 @@ public class SetorService {
     }
 
     public void update(Setor newSetor, Long setorId) {
+        this.LOG.info("Preparando para atualização do setor...");
+
         validateNullId(setorId);
         validateNullSetor(newSetor);
         this.LOG.info("Validando existência de setor com o Id informado");
@@ -76,6 +78,7 @@ public class SetorService {
                 commitAndClose();
                 return;
             }
+            validateDuplicate(newSetor);
             setor.setNome(newSetor.getNome());
             commitAndClose();
 

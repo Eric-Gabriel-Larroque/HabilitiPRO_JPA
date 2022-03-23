@@ -60,6 +60,7 @@ public class FuncaoService {
     }
 
     public void update(Funcao newFuncao, Long funcaoId) {
+        this.LOG.info("Preparando para atualização da função...");
         validateNullId(funcaoId);
         validateNullFuncao(newFuncao);
         this.LOG.info("Validando existência de função com o Id informado");
@@ -75,6 +76,7 @@ public class FuncaoService {
                 commitAndClose();
                 return;
             }
+            validateDuplicate(newFuncao);
             funcao.setNome(newFuncao.getNome());
             commitAndClose();
 

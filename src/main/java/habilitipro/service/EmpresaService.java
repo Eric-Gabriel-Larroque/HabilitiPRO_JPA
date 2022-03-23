@@ -74,6 +74,7 @@ public class EmpresaService {
     }
 
     public void update(Empresa newEmpresa, Long empresaId) {
+        this.LOG.info("Preparando para atualização de empresa...");
         validateNullEmpresa(newEmpresa);
         validateNullId(empresaId);
         this.LOG.info("Validando existência de empresa com o Id informado");
