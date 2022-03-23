@@ -5,7 +5,7 @@ public enum Perfis {
     OPERACIONAL("Operacional"),
     RH("RH");
 
-    private String perfilDeAcesso;
+    private final String perfilDeAcesso;
 
     private Perfis(String perfilDeAcesso) {
         this.perfilDeAcesso = perfilDeAcesso;
