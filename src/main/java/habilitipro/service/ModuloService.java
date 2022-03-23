@@ -28,6 +28,7 @@ public class ModuloService {
     }
 
     public void create(Modulo modulo) {
+        this.LOG.info("Preparando para criação do módulo...");
         validateNullModulo(modulo);
         validateDuplicate(modulo);
 
