@@ -46,6 +46,7 @@ public class Empresa {
         this.regional = regional;
         this.matriz = matriz;
         this.nomeFilial = nomeFilial.toLowerCase();
+        setNomeFilial(this.nomeFilial);
     }
 
     public long getId() {
