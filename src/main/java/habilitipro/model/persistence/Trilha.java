@@ -1,11 +1,9 @@
 package habilitipro.model.persistence;
 
 import javax.persistence.*;
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+
 
 @Entity
 public class Trilha {
@@ -27,15 +25,11 @@ public class Trilha {
     @Column(unique = true)
     private String nome;
 
-    @Column(unique = true)
     private String apelido;
 
     private String anotacoes;
 
     private int nivelSatisfacaoGeral;
-
-    @Transient
-    private static List<Trilha> trilhas = new ArrayList<>();
 
     @ManyToMany(mappedBy = "trilhas")
     private Set<Trabalhador> trabalhadores = new HashSet<>();
@@ -45,8 +39,6 @@ public class Trilha {
     public Trilha(Empresa empresa, Ocupacao ocupacao) {
         this.empresa = empresa;
         this.ocupacao = ocupacao;
-        setNome();
-        setApelido();
     }
 
     public long getId() {
@@ -73,35 +65,35 @@ public class Trilha {
         this.ocupacao = ocupacao;
     }
 
-    private int getNumeroSequencial() {
-        int length = trilhas.stream()
-                .filter(t -> t.empresa == this.empresa && t.ocupacao.getNome().equals(this.ocupacao.getNome()))
-                .toArray().length;
-        return length>0?length+1:1;
-    }
-
     public String getNome() {
         return nome;
     }
 
-    private void setNome() {
-        this.nome = this.ocupacao.getNome()+this.empresa.getNome()+getNumeroSequencial()+ LocalDate.now().getYear();
+    public void setNome(String nome) {
+        this.nome = nome;
     }
 
     public String getApelido() {
         return apelido;
     }
 
-    private void setApelido() {
-        this.apelido = this.ocupacao.getNome()+getNumeroSequencial();
+    public void setApelido(String apelido) {
+        this.apelido = apelido;
     }
-
     public String getAnotacoes() {
         return anotacoes;
     }
 
     public void setAnotacoes(String anotacoes) {
         this.anotacoes = anotacoes;
+    }
+
+    public int getNivelSatisfacaoGeral() {
+        return nivelSatisfacaoGeral;
+    }
+
+    public void setNivelSatisfacaoGeral(int nivelSatisfacaoGeral) {
+        this.nivelSatisfacaoGeral = nivelSatisfacaoGeral;
     }
 
     @Override
@@ -113,6 +105,7 @@ public class Trilha {
                 ", nome='" + nome + '\'' +
                 ", apelido='" + apelido + '\'' +
                 ", anotacoes='" + anotacoes + '\'' +
+                ", nivelSatisfacaoGeral='" + nivelSatisfacaoGeral + '\'' +
                 '}';
     }
 }
