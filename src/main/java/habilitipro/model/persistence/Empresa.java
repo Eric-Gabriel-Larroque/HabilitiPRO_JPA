@@ -15,7 +15,7 @@ public class Empresa {
     private String nome;
 
     @Column(nullable = false,unique = true, length = 14)
-    private String CNPJ;
+    private String cnpj;
 
     @Column(nullable = false)
     private boolean matriz;
@@ -35,18 +35,17 @@ public class Empresa {
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
     private Regional regional;
-
-
     public Empresa() {}
 
-    public Empresa(String nome,String CNPJ,Segmento segmento,String cidade,String estado,Regional regional, boolean matriz){
+    public Empresa(String nome, String cnpj, Segmento segmento, String cidade, String estado, Regional regional, boolean matriz, String nomeFilial){
         this.nome = nome.toLowerCase();
-        this.CNPJ = CNPJ;
+        this.cnpj = cnpj;
         this.segmento = segmento;
         this.cidade = cidade.toLowerCase();
         this.estado = estado.toLowerCase();
         this.regional = regional;
         this.matriz = matriz;
+        this.nomeFilial = nomeFilial.toLowerCase();
     }
 
     public long getId() {
@@ -65,12 +64,12 @@ public class Empresa {
         this.nome = nome;
     }
 
-    public String getCNPJ() {
-        return CNPJ;
+    public String getCnpj() {
+        return cnpj;
     }
 
-    public void setCNPJ(String CNPJ) {
-        this.CNPJ = CNPJ;
+    public void setCnpj(String cnpj) {
+        this.cnpj = cnpj;
     }
 
     public boolean isMatriz() {
@@ -86,7 +85,11 @@ public class Empresa {
     }
 
     public void setNomeFilial(String nomeFilial) {
-        this.nomeFilial = nomeFilial;
+        if(!isMatriz()) {
+            this.nomeFilial = nomeFilial;
+        } else {
+            this.nomeFilial = "";
+        }
     }
 
     public Segmento getSegmento() {
@@ -126,7 +129,7 @@ public class Empresa {
         return "Empresa{" +
                 "id=" + id +
                 ", nome='" + nome + '\'' +
-                ", CNPJ='" + CNPJ + '\'' +
+                ", CNPJ='" + cnpj + '\'' +
                 ", nomeFilial='" + nomeFilial + '\'' +
                 ", segmento=" + segmento +
                 ", cidade='" + cidade + '\'' +

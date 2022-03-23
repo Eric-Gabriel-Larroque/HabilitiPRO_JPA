@@ -3,6 +3,7 @@ package habilitipro.model.persistence;
 import habilitipro.enums.Status;
 
 import javax.persistence.*;
+import java.time.OffsetDateTime;
 
 @Entity
 public class Modulo {
@@ -16,7 +17,8 @@ public class Modulo {
     @JoinColumn(nullable = false, name = "trilha_id")
     private Trilha trilha;
 
-    @Column(nullable = false)
+    // Nome único para evitar duplicatas
+    @Column(nullable = false,unique = true)
     private String nome;
 
     @Column(nullable = false)
@@ -27,6 +29,10 @@ public class Modulo {
 
     @Column(nullable = false)
     private int prazoLimite;
+
+    private OffsetDateTime dataInicio;
+
+    private OffsetDateTime dataFim;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -40,6 +46,17 @@ public class Modulo {
         this.habilidadesTrabalhadas = habilidadesTrabalhadas;
         this.tarefaDeValidacao = tarefaDeValidacao;
         this.prazoLimite = prazoLimite;
+        this.status = Status.NAOINICIADO;
+        this.dataInicio = null;
+        this.dataFim = null;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public Trilha getTrilha() {
@@ -55,7 +72,7 @@ public class Modulo {
     }
 
     public void setNome(String nome) {
-        this.nome = nome.toLowerCase();
+        this.nome = nome;
     }
 
     public String getHabilidadesTrabalhadas() {
@@ -82,6 +99,22 @@ public class Modulo {
         this.prazoLimite = prazoLimite;
     }
 
+    public OffsetDateTime getDataInicio() {
+        return dataInicio;
+    }
+
+    public void setDataInicio(OffsetDateTime dataInicio) {
+        this.dataInicio = dataInicio;
+    }
+
+    public OffsetDateTime getDataFim() {
+        return dataFim;
+    }
+
+    public void setDataFim(OffsetDateTime dataFim) {
+        this.dataFim = dataFim;
+    }
+
     public Status getStatus() {
         return status;
     }
@@ -93,12 +126,15 @@ public class Modulo {
     @Override
     public String toString() {
         return "Modulo{" +
-                "trilha=" + trilha +
+                "id=" + id +
+                ", trilha=" + trilha +
                 ", nome='" + nome + '\'' +
                 ", habilidadesTrabalhadas='" + habilidadesTrabalhadas + '\'' +
                 ", tarefaDeValidacao='" + tarefaDeValidacao + '\'' +
                 ", prazoLimite=" + prazoLimite +
-                ", status='" + status + '\'' +
+                ", dataInicio=" + dataInicio +
+                ", dataFIm=" + dataFim +
+                ", status=" + status +
                 '}';
     }
 }

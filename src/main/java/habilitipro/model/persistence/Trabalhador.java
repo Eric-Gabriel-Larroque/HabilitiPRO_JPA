@@ -2,6 +2,8 @@ package habilitipro.model.persistence;
 
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -16,21 +18,29 @@ public class Trabalhador {
 
     @Column(nullable = false,unique = true)
     private String CPF;
+
     @JoinColumn(nullable = false, name = "empresa_id")
     @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.MERGE,
     CascadeType.REFRESH,CascadeType.DETACH}, fetch = FetchType.LAZY)
     private Empresa empresa;
 
-    @Column(nullable = false)
+    @JoinColumn(nullable = false, name = "setor_id")
+    @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.REFRESH,
+            CascadeType.MERGE,CascadeType.DETACH},fetch = FetchType.LAZY)
     private Setor setor;
 
-    @Column(nullable = false)
+    @JoinColumn(nullable = false, name = "funcao_id")
+    @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.REFRESH,
+            CascadeType.MERGE,CascadeType.DETACH}, fetch = FetchType.LAZY)
     private Funcao funcao;
 
-    @OneToMany(cascade = {CascadeType.PERSIST,CascadeType.MERGE,
-    CascadeType.REFRESH, CascadeType.DETACH},fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "trilha_id")
-    private Set<Trilha> trilha;
+    @ManyToMany(cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "Trabalhador_Trilha",
+            joinColumns = {@JoinColumn(name = "trabalhador_id")},
+            inverseJoinColumns = {@JoinColumn(name = "trilha_id")}
+    )
+    private Set<Trilha> trilhas = new HashSet<>();
 
     @Column(nullable = false)
     private LocalDate dataAlteracaoDaFuncao;
@@ -43,7 +53,7 @@ public class Trabalhador {
         this.empresa = empresa;
         this.setor = setor;
         this.funcao = funcao;
-        this.trilha = trilha;
+        this.trilhas = trilha;
         this.dataAlteracaoDaFuncao = LocalDate.now();
     }
 
@@ -96,11 +106,11 @@ public class Trabalhador {
     }
 
     public Set<Trilha> getTrilha() {
-        return trilha;
+        return trilhas;
     }
 
     public void setTrilha(Set<Trilha> trilha) {
-        this.trilha = trilha;
+        this.trilhas = trilha;
     }
 
     public LocalDate getDataAlteracaoDaFuncao() {
@@ -120,7 +130,7 @@ public class Trabalhador {
                 ", empresa=" + empresa +
                 ", setor=" + setor +
                 ", funcao=" + funcao +
-                ", trilha=" + trilha +
+                ", trilha=" + trilhas +
                 ", dataAlteracaoDaFuncao=" + dataAlteracaoDaFuncao +
                 '}';
     }

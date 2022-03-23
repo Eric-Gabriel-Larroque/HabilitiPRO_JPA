@@ -25,6 +25,7 @@ public class Usuario {
     private String senha;
 
     @Column(nullable = false)
+    @ElementCollection
     @Enumerated(EnumType.STRING)
     private Set<Perfis> perfisDeAcesso;
 

@@ -3,7 +3,9 @@ package habilitipro.model.persistence;
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 public class Trilha {
@@ -17,7 +19,9 @@ public class Trilha {
             CascadeType.REFRESH, CascadeType.DETACH}, fetch = FetchType.LAZY)
     private Empresa empresa;
 
-    @Column(nullable = false)
+    @JoinColumn(nullable = false,name = "ocupacao_id")
+    @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.REFRESH,
+            CascadeType.MERGE,CascadeType.DETACH},fetch = FetchType.LAZY)
     private Ocupacao ocupacao;
 
     @Column(unique = true)
@@ -28,7 +32,13 @@ public class Trilha {
 
     private String anotacoes;
 
-    private List<Trilha> listaTrilhas = new ArrayList<>();
+    private int nivelSatisfacaoGeral;
+
+    @Transient
+    private static List<Trilha> trilhas = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "trilhas")
+    private Set<Trabalhador> trabalhadores = new HashSet<>();
 
     public Trilha() {}
 
@@ -37,13 +47,6 @@ public class Trilha {
         this.ocupacao = ocupacao;
         setNome();
         setApelido();
-    }
-
-    private int getNumeroSequencial() {
-        int length = listaTrilhas.stream()
-                .filter(t -> t.empresa == this.empresa && t.ocupacao.equals(this.ocupacao))
-                .toArray().length;
-        return length>0?length+1:1;
     }
 
     public long getId() {
@@ -70,20 +73,27 @@ public class Trilha {
         this.ocupacao = ocupacao;
     }
 
+    private int getNumeroSequencial() {
+        int length = trilhas.stream()
+                .filter(t -> t.empresa == this.empresa && t.ocupacao.getNome().equals(this.ocupacao.getNome()))
+                .toArray().length;
+        return length>0?length+1:1;
+    }
+
     public String getNome() {
         return nome;
     }
 
-    public void setNome() {
-        this.nome = this.ocupacao+this.empresa.getNome()+getNumeroSequencial()+ LocalDate.now().getYear();
+    private void setNome() {
+        this.nome = this.ocupacao.getNome()+this.empresa.getNome()+getNumeroSequencial()+ LocalDate.now().getYear();
     }
 
     public String getApelido() {
         return apelido;
     }
 
-    public void setApelido() {
-        this.apelido = getNumeroSequencial()+this.ocupacao.getNome();
+    private void setApelido() {
+        this.apelido = this.ocupacao.getNome()+getNumeroSequencial();
     }
 
     public String getAnotacoes() {
@@ -92,14 +102,6 @@ public class Trilha {
 
     public void setAnotacoes(String anotacoes) {
         this.anotacoes = anotacoes;
-    }
-
-    public List<Trilha> getListaTrilhas() {
-        return listaTrilhas;
-    }
-
-    public void setListaTrilhas(List<Trilha> listaTrilhas) {
-        this.listaTrilhas = listaTrilhas;
     }
 
     @Override
@@ -111,7 +113,6 @@ public class Trilha {
                 ", nome='" + nome + '\'' +
                 ", apelido='" + apelido + '\'' +
                 ", anotacoes='" + anotacoes + '\'' +
-                ", listaTrilhas=" + listaTrilhas +
                 '}';
     }
 }
