@@ -1,6 +1,5 @@
 package habilitipro.model.dao;
 
-import habilitipro.model.persistence.Trabalhador;
 import habilitipro.model.persistence.Usuario;
 
 import javax.persistence.EntityManager;
@@ -26,25 +25,25 @@ public class UsuarioDAO {
     }
 
     public List<Usuario> listAll() {
-        String jpql = "SELECT t FROM Trilha AS t";
+        String jpql = "SELECT u FROM Usuario AS u";
         return this.em.
                 createQuery(jpql,Usuario.class)
                 .getResultList();
     }
 
     public List<Usuario> listByName(String nome) {
-        String jpql = "SELECT t FROM Trilha AS t WHERE t.nome=:nome";
+        String jpql = "SELECT u FROM Usuario AS u WHERE u.nome=:nome";
         return this.em.
                 createQuery(jpql,Usuario.class)
                 .setParameter("nome",nome)
                 .getResultList();
     }
 
-    public Usuario findByName(String nome) {
-        String jpql = "SELECT t FROM Trilha AS t WHERE t.nome=:nome";
+    public Usuario findByCpf(String cpf) {
+        String jpql = "SELECT u FROM Usuario AS u WHERE u.cpf=:cpf";
         return this.em.
                 createQuery(jpql,Usuario.class)
-                .setParameter("nome",nome)
+                .setParameter("cpf",cpf)
                 .getSingleResult();
     }
 

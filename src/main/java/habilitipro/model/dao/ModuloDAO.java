@@ -40,6 +40,14 @@ public class ModuloDAO {
                 .getResultList();
     }
 
+    public List<Modulo> listByTrilhaId(Long trilha_id) {
+        String sql = "SELECT * FROM Modulo AS m WHERE m.trilha_id=:trilha_id";
+        return (List<Modulo>) this.em
+                .createNativeQuery(sql,Modulo.class)
+                .setParameter("trilha_id",trilha_id)
+                .getResultList();
+    }
+
     public Modulo findByName(String nome) {
         String jpql = "SELECT m FROM Modulo AS m WHERE m.nome=:nome";
         return this.em.

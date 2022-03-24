@@ -40,11 +40,11 @@ public class TrabalhadorDAO {
                 .getResultList();
     }
 
-    public Trabalhador findByName(String nome) {
-        String jpql = "SELECT t FROM Trabalhador AS t WHERE t.nome=:nome";
+    public Trabalhador findByCpf(String cpf) {
+        String jpql = "SELECT t FROM Trabalhador AS t WHERE t.cpf=:cpf";
         return this.em.
                 createQuery(jpql,Trabalhador.class)
-                .setParameter("nome",nome)
+                .setParameter("cpf",cpf)
                 .getSingleResult();
     }
 
