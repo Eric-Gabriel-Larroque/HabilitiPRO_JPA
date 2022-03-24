@@ -1,5 +1,6 @@
 package habilitipro.service;
 
+import habilitipro.enums.Status;
 import habilitipro.model.dao.TrilhaDAO;
 import habilitipro.model.persistence.*;
 import org.apache.logging.log4j.LogManager;
@@ -22,6 +23,7 @@ public class TrilhaService {
 
     private EmpresaService empresaService;
 
+
     public static List<Trilha> trilhas = new ArrayList<>();
 
     public TrilhaService(EntityManager em) {
@@ -34,7 +36,6 @@ public class TrilhaService {
     public void create(Trilha trilha) {
         this.LOG.info("Preparando para criação da trilha...");
         validateNullTrilha(trilha);
-//        validateDuplicate(trilha);
 
         this.LOG.info("Verificando se já existe empresa com o cnpj informado...");
         Empresa empresa = this.empresaService.findByCnpj(trilha.getEmpresa().getCnpj());
@@ -213,10 +214,12 @@ public class TrilhaService {
             this.LOG.error("Entidade Trilha não encontrada");
             throw new EntityNotFoundException("Entity Trilha not found");
         }
-
     }
+
     public void setNome(Trilha trilha) {
-        String nome = trilha.getOcupacao().getNome()+trilha.getEmpresa().getNome()+getNumeroSequencial(trilha)+ LocalDate.now().getYear();
+        validateNullTrilha(trilha);
+        String nome = trilha.getOcupacao().getNome()+trilha.getEmpresa().getNome()+
+                getNumeroSequencial(trilha)+ LocalDate.now().getYear();
         trilha.setNome(nome);
     }
 
@@ -228,9 +231,9 @@ public class TrilhaService {
 
     public int getNumeroSequencial(Trilha trilha) {
         List<Trilha> trilhas = this.listAll();
-        trilhas.remove(trilha);
         int length = trilhas.stream()
-                .filter(t -> t.getEmpresa().equals(trilha.getEmpresa()) && t.getOcupacao().getNome().equals(trilha.getOcupacao().getNome()))
+                .filter(t -> t.getEmpresa().equals(trilha.getEmpresa()) &&
+                        t.getOcupacao().getNome().equals(trilha.getOcupacao().getNome()))
                 .toArray().length;
         this.LOG.info(length);
         return length>0?length+1:1;
