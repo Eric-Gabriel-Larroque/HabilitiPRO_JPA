@@ -2,8 +2,8 @@ package habilitipro.model.persistence;
 
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -17,21 +17,21 @@ public class Trabalhador {
     private String nome;
 
     @Column(nullable = false,unique = true)
-    private String CPF;
+    private String cpf;
 
-    @JoinColumn(nullable = false, name = "empresa_id")
-    @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.MERGE,
-    CascadeType.REFRESH,CascadeType.DETACH}, fetch = FetchType.LAZY)
-    private Empresa empresa;
-
-    @JoinColumn(nullable = false, name = "setor_id")
     @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.REFRESH,
             CascadeType.MERGE,CascadeType.DETACH},fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "empresa_id")
+    private Empresa empresa;
+
+    @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.REFRESH,
+            CascadeType.MERGE,CascadeType.DETACH},fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "setor_id")
     private Setor setor;
 
-    @JoinColumn(nullable = false, name = "funcao_id")
     @ManyToOne(cascade = {CascadeType.PERSIST,CascadeType.REFRESH,
-            CascadeType.MERGE,CascadeType.DETACH}, fetch = FetchType.LAZY)
+            CascadeType.MERGE,CascadeType.DETACH},fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "funcao_id")
     private Funcao funcao;
 
     @ManyToMany(cascade = CascadeType.ALL,fetch = FetchType.LAZY)
@@ -43,18 +43,18 @@ public class Trabalhador {
     private Set<Trilha> trilhas = new HashSet<>();
 
     @Column(nullable = false)
-    private LocalDate dataAlteracaoDaFuncao;
+    private OffsetDateTime dataAlteracaoDaFuncao;
 
     public Trabalhador() {}
 
     public Trabalhador(String nome, String cpf, Empresa empresa, Setor setor, Funcao funcao, Set<Trilha> trilha) {
         this.nome = nome.toLowerCase();
-        this.CPF = cpf;
+        this.cpf = cpf;
         this.empresa = empresa;
         this.setor = setor;
         this.funcao = funcao;
         this.trilhas = trilha;
-        this.dataAlteracaoDaFuncao = LocalDate.now();
+        this.dataAlteracaoDaFuncao = OffsetDateTime.now();
     }
 
     public long getId() {
@@ -73,12 +73,12 @@ public class Trabalhador {
         this.nome = nome.toLowerCase();
     }
 
-    public String getCPF() {
-        return CPF;
+    public String getCpf() {
+        return cpf;
     }
 
-    public void setCPF(String CPF) {
-        this.CPF = CPF;
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
     }
 
     public Empresa getEmpresa() {
@@ -113,11 +113,11 @@ public class Trabalhador {
         this.trilhas = trilha;
     }
 
-    public LocalDate getDataAlteracaoDaFuncao() {
+    public OffsetDateTime getDataAlteracaoDaFuncao() {
         return dataAlteracaoDaFuncao;
     }
 
-    public void setDataAlteracaoDaFuncao(LocalDate dataAlteracaoDaFuncao) {
+    public void setDataAlteracaoDaFuncao(OffsetDateTime dataAlteracaoDaFuncao) {
         this.dataAlteracaoDaFuncao = dataAlteracaoDaFuncao;
     }
 
@@ -126,7 +126,7 @@ public class Trabalhador {
         return "Trabalhador{" +
                 "id=" + id +
                 ", nome='" + nome + '\'' +
-                ", CPF='" + CPF + '\'' +
+                ", CPF='" + cpf + '\'' +
                 ", empresa=" + empresa +
                 ", setor=" + setor +
                 ", funcao=" + funcao +

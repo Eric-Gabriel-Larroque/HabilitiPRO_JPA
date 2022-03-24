@@ -49,6 +49,7 @@ public class Modulo {
         this.status = Status.NAOINICIADO;
         this.dataInicio = null;
         this.dataFim = null;
+        setPrazoLimite(this.prazoLimite);
     }
 
     public long getId() {
@@ -96,7 +97,11 @@ public class Modulo {
     }
 
     public void setPrazoLimite(int prazoLimite) {
-        this.prazoLimite = prazoLimite;
+        if(prazoLimite<=0) {
+            this.prazoLimite = 10;
+        }else {
+            this.prazoLimite = prazoLimite;
+        }
     }
 
     public OffsetDateTime getDataInicio() {

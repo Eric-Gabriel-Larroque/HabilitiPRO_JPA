@@ -1,9 +1,12 @@
 package habilitipro.model.persistence;
 
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Columns;
+
 import javax.persistence.*;
+import java.beans.BeanProperty;
 import java.util.HashSet;
 import java.util.Set;
-
 
 @Entity
 public class Trilha {
@@ -93,7 +96,7 @@ public class Trilha {
     }
 
     public void setNivelSatisfacaoGeral(int nivelSatisfacaoGeral) {
-        this.nivelSatisfacaoGeral = nivelSatisfacaoGeral;
+       this.nivelSatisfacaoGeral = nivelSatisfacaoGeral;
     }
 
     @Override
