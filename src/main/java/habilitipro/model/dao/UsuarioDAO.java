@@ -39,6 +39,14 @@ public class UsuarioDAO {
                 .getResultList();
     }
 
+    public Usuario findByEmail(String email) {
+        String jpql = "SELECT u FROM Usuario AS u WHERE u.email=:email";
+        return this.em.
+                createQuery(jpql,Usuario.class)
+                .setParameter("email",email)
+                .getSingleResult();
+    }
+
     public Usuario findByCpf(String cpf) {
         String jpql = "SELECT u FROM Usuario AS u WHERE u.cpf=:cpf";
         return this.em.
