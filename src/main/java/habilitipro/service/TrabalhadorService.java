@@ -12,6 +12,7 @@ import javax.persistence.NoResultException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import static habilitipro.util.FileHandler.escreverNoArquivo;
 
 public class TrabalhadorService {
 
@@ -31,6 +32,8 @@ public class TrabalhadorService {
 
     private OcupacaoService ocupacaoService;
 
+    private ModuloService moduloService;
+
     private final String CPF_TEMPLATE = "\\d\\d\\d\\d\\d\\d\\d\\d\\d\\d\\d";
 
     public TrabalhadorService(EntityManager em) {
@@ -41,6 +44,7 @@ public class TrabalhadorService {
         this.empresaService = new EmpresaService(em);
         this.setorService = new SetorService(em);
         this.ocupacaoService = new OcupacaoService(em);
+        this.moduloService = new ModuloService(em);
     }
 
     public void create(Trabalhador trabalhador) {
@@ -79,7 +83,7 @@ public class TrabalhadorService {
             trabalhador.setFuncao(funcao);
         }
 
-        this.LOG.info("Verificando se já existe o setor informada...");
+        this.LOG.info("Verificando se já existe o setor informado...");
         Setor setor = this.setorService.findByName(trabalhador.getSetor().getNome());
 
         if(setor != null) {
@@ -102,6 +106,22 @@ public class TrabalhadorService {
             }
         });
 
+        this.LOG.info("Verificando se os módulos já existem");
+        trabalhador.getModulos().forEach(m->{
+            Modulo modulo = this.moduloService.findByName(m.getNome());
+
+
+
+            if(modulo != null) {
+                m = modulo;
+            }
+
+            if(!trabalhador.getTrilha().contains(m.getTrilha())) {
+                this.LOG.error("O módulo informado não faz parte desta trilha.");
+                throw new RuntimeException("Entity Modulo does not make part of entity Trilha");
+            }
+        });
+
         try {
             beginTransaction();
             this.trabalhadorDAO.create(trabalhador);
@@ -110,6 +130,7 @@ public class TrabalhadorService {
             this.LOG.error("Falha ao tentar criar trabalhador: "+e.getMessage());
             throw new RuntimeException("Failed to create entity Trabalhador");
         }
+        setPrimeiroRegistro(trabalhador);
         this.LOG.info("Criação realizada com sucesso!");
     }
 
@@ -142,13 +163,14 @@ public class TrabalhadorService {
         validateNullTrabalhador(trabalhador);
         this.LOG.info("Trabalhador encontrado! Iniciando atualização...");
 
-        if(!trabalhador.getFuncao().getNome().equals(newTrabalhador.getFuncao().getNome())) {
-            trabalhador.setDataAlteracaoDaFuncao(OffsetDateTime.now());
-        }
-
         try {
             beginTransaction();
             this.trabalhadorDAO.update(trabalhador);
+
+            validateCpfTemplate(newTrabalhador.getCpf());
+            trabalhador.setCpf(newTrabalhador.getCpf());
+            trabalhador.setNome(newTrabalhador.getNome());
+
 
             this.LOG.info("Verificando se a trilha pertence a mesma empresa do trabalhador");
             if(!newTrabalhador.getTrilha().stream().allMatch(t->t.getEmpresa()
@@ -161,9 +183,11 @@ public class TrabalhadorService {
             Empresa empresa = this.empresaService.findByCnpj(newTrabalhador.getEmpresa().getCnpj());
 
             if(empresa != null) {
+                setRegistroEmpresa(trabalhador,empresa);
                 trabalhador.setEmpresa(empresa);
                 trabalhador.getTrilha().forEach(t->t.setEmpresa(empresa));
             }else{
+                setRegistroEmpresa(newTrabalhador,trabalhador.getEmpresa());
                 trabalhador.setEmpresa(newTrabalhador.getEmpresa());
                 trabalhador.getTrilha().forEach(t->t.setEmpresa(empresa));
             }
@@ -172,8 +196,10 @@ public class TrabalhadorService {
             Funcao funcao = this.funcaoService.findByName(newTrabalhador.getFuncao().getNome());
 
             if(funcao != null) {
+                setRegistroFuncao(trabalhador,funcao);
                 trabalhador.setFuncao(funcao);
             }else {
+                setRegistroFuncao(newTrabalhador,trabalhador.getFuncao());
                 trabalhador.setFuncao(newTrabalhador.getFuncao());
             }
 
@@ -181,8 +207,10 @@ public class TrabalhadorService {
             Setor setor = this.setorService.findByName(newTrabalhador.getSetor().getNome());
 
             if(setor != null) {
+                setRegistroSetor(trabalhador,setor);
                 trabalhador.setSetor(setor);
             }else {
+                setRegistroSetor(newTrabalhador, trabalhador.getSetor());
                 trabalhador.setSetor(newTrabalhador.getSetor());
             }
 
@@ -211,9 +239,27 @@ public class TrabalhadorService {
                     }
                 }
             }
-            validateCpfTemplate(newTrabalhador.getCpf());
-            trabalhador.setCpf(newTrabalhador.getCpf());
-            trabalhador.setNome(newTrabalhador.getNome());
+
+            this.LOG.info("Verificando se existem os módulo informados...");
+
+            for(Modulo newModulo: newTrabalhador.getModulos()) {
+                for(Modulo modulo: trabalhador.getModulos()) {
+                    Modulo modulo1 = this.moduloService.findByName(newModulo.getNome());
+
+                    if(modulo1 != null) {
+                        modulo = modulo1;
+                    }else {
+                        modulo = newModulo;
+                    }
+
+                    if(!modulo1.getTrilha().getNome().equals(modulo.getTrilha().getNome())) {
+                        this.LOG.error("Esse módulo não faz parte da trilha informada");
+                        throw new RuntimeException("Entity Modulo arent asigned to this entity Trilha");
+                    }
+                }
+            }
+
+
 
             commitAndClose();
         }catch (Exception e) {
@@ -326,6 +372,38 @@ public class TrabalhadorService {
         if(!cpf.matches(this.CPF_TEMPLATE)){
             this.LOG.error("O formato do cpf está incorreto");
             throw new RuntimeException("Wrong cpf format");
+        }
+    }
+
+    public void setPrimeiroRegistro(Trabalhador trabalhador) {
+        String registro = "Trabalhador "+trabalhador.getNome()+" possui " +trabalhador.getTrilha().size()+
+                " trilha(s) executada(s) e vinculada(s) ao Setor: "+trabalhador.getSetor().getNome()+
+                " ou Função: "+trabalhador.getFuncao().getNome();
+        escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
+    }
+
+    public void setRegistroEmpresa(Trabalhador trabalhador, Empresa empresa) {
+        if(!trabalhador.getEmpresa().getCnpj().equals(empresa.getCnpj())) {
+            this.LOG.info("registrando mudança de empresa...");
+            String registro = "Trabalhador "+trabalhador.getNome()+" mudou para a empresa "+empresa.getNome();
+            escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
+        }
+    }
+
+    public void setRegistroSetor(Trabalhador trabalhador, Setor setor) {
+        if(!trabalhador.getSetor().getNome().equals(setor.getNome())) {
+            this.LOG.info("registrando mudança de setor...");
+            String registro = "Trabalhador "+trabalhador.getNome()+" mudou para o setor "+setor.getNome();
+            escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
+        }
+    }
+
+    public void setRegistroFuncao(Trabalhador trabalhador, Funcao funcao) {
+        if(!trabalhador.getFuncao().getNome().equals(funcao.getNome())) {
+            this.LOG.info("Registrando mudança de função...");
+                trabalhador.setDataAlteracaoDaFuncao(OffsetDateTime.now());
+                String registro = "Trabalhador "+trabalhador.getNome()+" mudou para a função "+funcao.getNome();
+                escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
         }
     }
 

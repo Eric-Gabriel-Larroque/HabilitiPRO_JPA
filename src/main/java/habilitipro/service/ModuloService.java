@@ -221,6 +221,7 @@ public class ModuloService {
         this.LOG.info("Verificando se o status foi definido como 'Em andamento'...");
         if (status.equals(Status.EMANDAMENTO)) {
             modulo.setDataInicio(OffsetDateTime.now());
+            modulo.setStatus(status);
         }
     }
 
@@ -228,6 +229,7 @@ public class ModuloService {
         this.LOG.info("Verificando se o status foi definido como 'Em fase de avaliação'...");
          if(status.equals(Status.AVALIACAO)) {
             modulo.setDataFim(OffsetDateTime.now());
+            modulo.setStatus(status);
          }
     }
 
@@ -237,7 +239,7 @@ public class ModuloService {
         setDataInicio(modulo,status);
         setDataFim(modulo,status);
 
-        if(modulo.getDataFim().plusDays(modulo.getPrazoLimite()).compareTo(OffsetDateTime.now())>=0){
+        if(modulo.getDataFim() != null && modulo.getDataFim().plusDays(modulo.getPrazoLimite()).compareTo(OffsetDateTime.now())>=0){
             this.LOG.info("Verificando se o status foi definido como 'Finalizado'...");
             modulo.setStatus(Status.FINALIZADO);
         }
