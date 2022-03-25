@@ -1,0 +1,4 @@
+Trabalhador + nomeTrabalhador + possui + trilhas.length + executadas e vinculadas à Empresa + nomeEmpresa;
+Trabalhador + nomeTrabalhador + mudou para a Empresa + nomeEmpresa;
+Trabalhador + nomeTrabalhador + mudou para a Área/Setor + nomeSetor
+Trabalhador + nomeTrabalhador + mudou para a Função + nomeFuncao
