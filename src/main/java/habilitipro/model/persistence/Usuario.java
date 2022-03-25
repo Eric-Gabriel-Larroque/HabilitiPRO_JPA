@@ -34,7 +34,7 @@ public class Usuario {
     public Usuario(String nome, String cpf, String email, String senha,Set<Perfis> perfisDeAcesso){
         this.nome = nome.toLowerCase();
         this.cpf = cpf;
-        this.email = email;
+        this.email = email.toLowerCase();
         this.senha = senha;
         this.perfisDeAcesso = perfisDeAcesso;
     }
