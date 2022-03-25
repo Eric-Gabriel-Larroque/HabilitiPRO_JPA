@@ -4,6 +4,8 @@ import habilitipro.enums.Status;
 
 import javax.persistence.*;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 public class Modulo {
@@ -37,6 +39,9 @@ public class Modulo {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
+
+    @ManyToMany(mappedBy = "modulos")
+    private Set<Trabalhador> trabalhadores = new HashSet<>();
 
     public Modulo() {}
 

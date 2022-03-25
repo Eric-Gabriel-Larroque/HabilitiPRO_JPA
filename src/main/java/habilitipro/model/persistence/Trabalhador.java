@@ -3,6 +3,7 @@ package habilitipro.model.persistence;
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,18 +43,38 @@ public class Trabalhador {
     )
     private Set<Trilha> trilhas = new HashSet<>();
 
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "Trabalhador_Modulo",
+            joinColumns = {@JoinColumn(name = "trabalhador_id")},
+            inverseJoinColumns = {@JoinColumn(name = "modulo_id")}
+    )
+    private Set<Modulo> modulos = new HashSet<>();
+
     @Column(nullable = false)
     private OffsetDateTime dataAlteracaoDaFuncao;
 
+
+    // Regra de negócio para registro em arquivo a cada alteração de
+    // Empresa, Função, Setor, ou vinculação à trilha feita pelo trabalhador
+    @Transient
+    private String nomeArquivo;
+
+    private HashMap<String,Modulo> anotacoes;
+
+    private HashMap<Integer, Modulo> scores;
+
     public Trabalhador() {}
 
-    public Trabalhador(String nome, String cpf, Empresa empresa, Setor setor, Funcao funcao, Set<Trilha> trilha) {
+    public Trabalhador(String nome, String cpf, Empresa empresa, Setor setor, Funcao funcao, Set<Trilha> trilhas, Set<Modulo> modulos) {
         this.nome = nome.toLowerCase();
         this.cpf = cpf;
+        this.nomeArquivo = "registros_trabalhadores/registro_trabalhador_"+this.getNome().toLowerCase()+"_"+this.getCpf()+".txt";
         this.empresa = empresa;
         this.setor = setor;
         this.funcao = funcao;
-        this.trilhas = trilha;
+        this.trilhas = trilhas;
+        this.modulos = modulos;
         this.dataAlteracaoDaFuncao = OffsetDateTime.now();
     }
 
@@ -121,6 +142,18 @@ public class Trabalhador {
         this.dataAlteracaoDaFuncao = dataAlteracaoDaFuncao;
     }
 
+    public String getNomeArquivo() {
+        return this.nomeArquivo;
+    }
+
+    public Set<Modulo> getModulos() {
+        return modulos;
+    }
+
+    public void setModulos(Set<Modulo> modulos) {
+        this.modulos = modulos;
+    }
+
     @Override
     public String toString() {
         return "Trabalhador{" +
@@ -131,6 +164,7 @@ public class Trabalhador {
                 ", setor=" + setor +
                 ", funcao=" + funcao +
                 ", trilha=" + trilhas +
+                ", modulo=" + modulos +
                 ", dataAlteracaoDaFuncao=" + dataAlteracaoDaFuncao +
                 '}';
     }
