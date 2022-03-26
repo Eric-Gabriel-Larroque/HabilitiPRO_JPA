@@ -1,17 +1,18 @@
 package habilitipro.service;
 
+import habilitipro.connection.Transaction;
 import habilitipro.model.dao.SetorDAO;
-import habilitipro.model.persistence.Ocupacao;
 import habilitipro.model.persistence.Setor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
 import javax.persistence.NoResultException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static habilitipro.util.Validation.*;
 
 public class SetorService {
 
@@ -21,20 +22,23 @@ public class SetorService {
 
     private SetorDAO setorDAO;
 
+    private Transaction transaction;
+
     public SetorService(EntityManager em) {
         this.em = em;
         this.setorDAO = new SetorDAO(em);
+        this.transaction = new Transaction(em);
     }
 
     public void create(Setor setor) {
         this.LOG.info("Preparando criação de setor...");
-        validateNullSetor(setor);
+        validateNullObject(setor,"setor");
         validateDuplicate(setor);
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.setorDAO.create(setor);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao criar setor: "+e.getMessage());
             throw new RuntimeException("Failed to create entity Setor");
@@ -46,13 +50,13 @@ public class SetorService {
         this.LOG.info("Preparando para deleção do setor...");
         validateNullId(id);
         Setor setor = this.setorDAO.getById(id);
-        validateNullSetor(setor);
+        validateNullObject(setor,"setor");
         this.LOG.info("Setor encontrado! Iniciando deleção...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.setorDAO.delete(setor);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao deletar setor: "+e.getMessage());
             throw new RuntimeException("Failed to delete entity Setor");
@@ -64,23 +68,23 @@ public class SetorService {
         this.LOG.info("Preparando para atualização do setor...");
 
         validateNullId(setorId);
-        validateNullSetor(newSetor);
+        validateNullObject(newSetor,"setor");
         this.LOG.info("Validando existência de setor com o Id informado");
         Setor setor = this.setorDAO.getById(setorId);
-        validateNullSetor(setor);
+        validateNullObject(setor,"setor");
         this.LOG.info("Setor encontrado! Iniciando atualização...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.setorDAO.update(setor);
             if(setor.getNome().equals(newSetor.getNome())) {
                 this.LOG.info("O setor atual já contém os dados atualizados");
-                commitAndClose();
+                transaction.commitAndClose();
                 return;
             }
             validateDuplicate(newSetor);
             setor.setNome(newSetor.getNome());
-            commitAndClose();
+            transaction.commitAndClose();
 
         }catch (Exception e) {
             this.LOG.error("Erro ao atualizar setor: "+e.getMessage());
@@ -92,7 +96,7 @@ public class SetorService {
     public List<Setor> listAll() {
         this.LOG.info("Preparando listagem das setores...");
         List<Setor> setores = this.setorDAO.listAll();
-        validateNullList(setores);
+        validateNullList(Collections.singletonList(setores),"setor");
 
         if(setores != null) {
             this.LOG.info(setores.size()+" setor(es) encontrado(s)");
@@ -102,9 +106,9 @@ public class SetorService {
 
     public List<Setor> listByName(String nome) {
         this.LOG.info("Preparando listagem de setores pelo nome...");
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         List<Setor> setores = this.setorDAO.listByName(nome.toLowerCase());
-        validateNullList(setores);
+        validateNullList(Collections.singletonList(setores),"setor");
 
         if(setores != null){
             this.LOG.info(setores.size()+" setor(es) encontrado(s)");
@@ -113,7 +117,7 @@ public class SetorService {
     }
 
     public Setor findByName(String nome) {
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         try {
             this.LOG.info("Verificando se existe setor com o nome informado...");
             Setor setor = this.setorDAO.findByName(nome.toLowerCase());
@@ -130,7 +134,7 @@ public class SetorService {
         validateNullId(id);
         this.LOG.info("Verificando se existe setor com o id informado...");
         Setor setor = this.setorDAO.getById(id);
-        validateNullSetor(setor);
+        validateNullObject(setor,"setor");
         if(setor != null) {
             this.LOG.info("Setor encontrado!");
         }
@@ -146,49 +150,4 @@ public class SetorService {
             throw new EntityExistsException("Entity Setor already exists");
         }
     }
-
-    private List<Setor> validateNullList(List<Setor> setores) {
-        this.LOG.info("Verificando se existe registros de setor");
-        if(setores == null) {
-            this.LOG.info("Não foram encontrados setores.");
-            return new ArrayList<>();
-        }
-        return setores;
-    }
-
-    private void validateNullId(Long id) {
-        this.LOG.info("Verificando se o id informado é nulo...");
-        if(id == null) {
-            this.LOG.error("O id informado é nulo");
-            throw new RuntimeException("Id is null");
-        }
-    }
-
-    private void validateNullName(String nome) {
-        this.LOG.info("Verificando se o nome informado é nulo...");
-        if(nome == null || nome.isEmpty() || nome.isBlank()) {
-            this.LOG.error("O nome informado é vazio ou nulo");
-            throw new RuntimeException("nome is empty or null");
-        }
-    }
-
-    private void validateNullSetor(Setor setor) {
-        this.LOG.info("Verificando se o setor é nulo...");
-        if(setor == null) {
-            this.LOG.error("Entidade Setor não encontrado");
-            throw new EntityNotFoundException("Entity Setor not found");
-        }
-    }
-
-    private void beginTransaction() {
-        this.LOG.info("Iniciando transação...");
-        this.em.getTransaction().begin();
-    }
-
-    private void commitAndClose() {
-        this.LOG.info("Commitando e fechando transação...");
-        this.em.getTransaction().commit();
-        this.em.close();
-    }
-
 }

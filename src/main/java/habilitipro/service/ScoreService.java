@@ -1,25 +1,21 @@
 package habilitipro.service;
 
-import habilitipro.model.dao.AnotacaoDAO;
+import habilitipro.connection.Transaction;
 import habilitipro.model.dao.ScoreDAO;
-import habilitipro.model.persistence.Anotacao;
 import habilitipro.model.persistence.Modulo;
 import habilitipro.model.persistence.Score;
 import habilitipro.model.persistence.Trabalhador;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.boot.model.source.internal.hbm.ManyToOnePropertySource;
 
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
-import javax.persistence.NoResultException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import static habilitipro.util.Validation.*;
+
 public class ScoreService {
-
-
 
     private final Logger LOG = LogManager.getLogger(ScoreService.class);
 
@@ -31,16 +27,19 @@ public class ScoreService {
 
     private ModuloService moduloService;
 
+    private Transaction transaction;
+
     public ScoreService(EntityManager em) {
         this.em = em;
         this.scoreDAO = new ScoreDAO(em);
         this.moduloService = new ModuloService(em);
         this.trabalhadorService = new TrabalhadorService(em);
+        this.transaction = new Transaction(em);
     }
 
     public void create(Score score) {
         this.LOG.info("Preparando criação de score...");
-        validateNullScore(score);
+        validateNullObject(score,"score");
         validateNota(score.getNota());
 
         this.LOG.info("Verificando se o modulo já existe");
@@ -58,9 +57,9 @@ public class ScoreService {
 
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.scoreDAO.create(score);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao criar score: "+e.getMessage());
             throw new RuntimeException("Failed to create entity Score");
@@ -72,13 +71,13 @@ public class ScoreService {
         this.LOG.info("Preparando para deleção do Score...");
         validateNullId(id);
         Score score = this.scoreDAO.getById(id);
-        validateNullScore(score);
+        validateNullObject(score,"score");
         this.LOG.info("Score encontrado! Iniciando deleção...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.scoreDAO.delete(score);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao deletar score: "+e.getMessage());
             throw new RuntimeException("Failed to delete Score");
@@ -89,18 +88,18 @@ public class ScoreService {
     public void update(Score newScore, Long scoreId) {
         this.LOG.info("Preparando para atualização do score...");
         validateNullId(scoreId);
-        validateNullScore(newScore);
+        validateNullObject(newScore,"score");
         this.LOG.info("Validando existência de score com o Id informado");
         Score score = this.scoreDAO.getById(scoreId);
-        validateNullScore(score);
+        validateNullObject(score,"score");
         this.LOG.info("Score encontrado! Iniciando atualização...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.scoreDAO.update(score);
             validateNota(newScore.getNota());
             score.setNota(newScore.getNota());
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao atualizar score: "+e.getMessage());
             throw new RuntimeException("Failed to update entity Score");
@@ -111,7 +110,7 @@ public class ScoreService {
     public List<Score> listAll() {
         this.LOG.info("Preparando listagem dos scores...");
         List<Score> scores = this.scoreDAO.listAll();
-        validateNullList(scores);
+        validateNullList(Collections.singletonList(scores),"score");
 
         if(scores != null) {
             this.LOG.info(scores.size()+" score(s) encontrado(s)");
@@ -124,7 +123,7 @@ public class ScoreService {
         validateNullId(id);
         this.LOG.info("Verificando se existe score com o id informado...");
         Score score = this.scoreDAO.getById(id);
-        validateNullScore(score);
+        validateNullObject(score,"score");
         if(score != null) {
             this.LOG.info("Score encontrado!");
         }
@@ -151,49 +150,5 @@ public class ScoreService {
             this.LOG.error("Esse score já consta em nossa base de dados");
             throw new EntityExistsException("Entity Score already exists");
         }
-    }
-
-    private List<Score> validateNullList(List<Score> scores) {
-        this.LOG.info("Verificando se existe registros de score");
-        if(scores == null) {
-            this.LOG.info("Não foram encontrados scores.");
-            return new ArrayList<>();
-        }
-        return scores;
-    }
-
-    private void validateNullId(Long id) {
-        this.LOG.info("Verificando se o id informado é nulo...");
-        if(id == null) {
-            this.LOG.error("O id informado é nulo");
-            throw new RuntimeException("Id is null");
-        }
-    }
-
-    private void validateNullNota(Integer nota) {
-        this.LOG.info("Verificando se a nota informada é nula...");
-        if(nota == null) {
-            this.LOG.error("A nota informada é nula");
-            throw new RuntimeException("score attribute is null");
-        }
-    }
-
-    private void validateNullScore(Score score) {
-        this.LOG.info("Verificando se o score é nulo...");
-        if(score == null) {
-            this.LOG.error("Entidade score não encontrado");
-            throw new EntityNotFoundException("Entity Score not found");
-        }
-    }
-
-    private void beginTransaction() {
-        this.LOG.info("Iniciando transação...");
-        this.em.getTransaction().begin();
-    }
-
-    private void commitAndClose() {
-        this.LOG.info("Commitando e fechando transação...");
-        this.em.getTransaction().commit();
-        this.em.close();
     }
 }

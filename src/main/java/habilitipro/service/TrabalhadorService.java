@@ -1,5 +1,6 @@
 package habilitipro.service;
 
+import habilitipro.connection.Transaction;
 import habilitipro.model.dao.TrabalhadorDAO;
 import habilitipro.model.persistence.*;
 import org.apache.logging.log4j.LogManager;
@@ -7,12 +8,11 @@ import org.apache.logging.log4j.Logger;
 
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
 import javax.persistence.NoResultException;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import static habilitipro.util.FileHandler.escreverNoArquivo;
+
+import static habilitipro.util.Validation.*;
 
 public class TrabalhadorService {
 
@@ -34,7 +34,9 @@ public class TrabalhadorService {
 
     private ModuloService moduloService;
 
-    private final String CPF_TEMPLATE = "\\d\\d\\d\\d\\d\\d\\d\\d\\d\\d\\d";
+    private HistoricoTrabalhadorService historicoTrabalhadorService;
+
+    private Transaction transaction;
 
     public TrabalhadorService(EntityManager em) {
         this.em = em;
@@ -45,11 +47,13 @@ public class TrabalhadorService {
         this.setorService = new SetorService(em);
         this.ocupacaoService = new OcupacaoService(em);
         this.moduloService = new ModuloService(em);
+        this.historicoTrabalhadorService = new HistoricoTrabalhadorService(em);
+        this.transaction = new Transaction(em);
     }
 
     public void create(Trabalhador trabalhador) {
         this.LOG.info("Preparando para criação de trabalhador...");
-        validateNullTrabalhador(trabalhador);
+        validateNullObject(trabalhador,"trabalhador");
 
         Trabalhador trabalhador1 = this.findByCpf(trabalhador.getCpf());
 
@@ -123,14 +127,15 @@ public class TrabalhadorService {
         });
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.trabalhadorDAO.create(trabalhador);
-            commitAndClose();
+            this.trabalhadorDAO.update(trabalhador);
+           this.historicoTrabalhadorService.setPrimeiroRegistro(trabalhador);
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Falha ao tentar criar trabalhador: "+e.getMessage());
             throw new RuntimeException("Failed to create entity Trabalhador");
         }
-        setPrimeiroRegistro(trabalhador);
         this.LOG.info("Criação realizada com sucesso!");
     }
 
@@ -140,13 +145,13 @@ public class TrabalhadorService {
 
         this.LOG.info("Verificando se existe trabalhador com o Id informado...");
         Trabalhador trabalhador = this.trabalhadorDAO.getById(id);
-        validateNullTrabalhador(trabalhador);
+        validateNullObject(trabalhador,"trabalhador");
         this.LOG.info("Trabalhador encontrado! Iniciando deleção...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.trabalhadorDAO.delete(trabalhador);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Falha ao tentar deletar trabalhador: "+e.getMessage());
             throw new RuntimeException("Failed to delete entity Trabalhador");
@@ -157,14 +162,14 @@ public class TrabalhadorService {
     public void update(Trabalhador newTrabalhador, Long trabalhadorId) {
         this.LOG.info("Preparando para atualização do trabalhador...");
         validateNullId(trabalhadorId);
-        validateNullTrabalhador(newTrabalhador);
+        validateNullObject(newTrabalhador,"trabalhador");
         this.LOG.info("Verificando se existe trabalhador com o Id informado...");
         Trabalhador trabalhador = this.trabalhadorDAO.getById(trabalhadorId);
-        validateNullTrabalhador(trabalhador);
+        validateNullObject(trabalhador,"trabalhador");
         this.LOG.info("Trabalhador encontrado! Iniciando atualização...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.trabalhadorDAO.update(trabalhador);
 
             validateCpfTemplate(newTrabalhador.getCpf());
@@ -183,11 +188,11 @@ public class TrabalhadorService {
             Empresa empresa = this.empresaService.findByCnpj(newTrabalhador.getEmpresa().getCnpj());
 
             if(empresa != null) {
-                setRegistroEmpresa(trabalhador,empresa);
+                this.historicoTrabalhadorService.setRegistroEmpresa(trabalhador,empresa);
                 trabalhador.setEmpresa(empresa);
                 trabalhador.getTrilha().forEach(t->t.setEmpresa(empresa));
             }else{
-                setRegistroEmpresa(newTrabalhador,trabalhador.getEmpresa());
+                this.historicoTrabalhadorService.setRegistroEmpresa(trabalhador,newTrabalhador.getEmpresa());
                 trabalhador.setEmpresa(newTrabalhador.getEmpresa());
                 trabalhador.getTrilha().forEach(t->t.setEmpresa(empresa));
             }
@@ -196,10 +201,10 @@ public class TrabalhadorService {
             Funcao funcao = this.funcaoService.findByName(newTrabalhador.getFuncao().getNome());
 
             if(funcao != null) {
-                setRegistroFuncao(trabalhador,funcao);
+                this.historicoTrabalhadorService.setRegistroFuncao(trabalhador,funcao);
                 trabalhador.setFuncao(funcao);
             }else {
-                setRegistroFuncao(newTrabalhador,trabalhador.getFuncao());
+                this.historicoTrabalhadorService.setRegistroFuncao(trabalhador,newTrabalhador.getFuncao());
                 trabalhador.setFuncao(newTrabalhador.getFuncao());
             }
 
@@ -207,10 +212,10 @@ public class TrabalhadorService {
             Setor setor = this.setorService.findByName(newTrabalhador.getSetor().getNome());
 
             if(setor != null) {
-                setRegistroSetor(trabalhador,setor);
+                this.historicoTrabalhadorService.setRegistroSetor(trabalhador,setor);
                 trabalhador.setSetor(setor);
             }else {
-                setRegistroSetor(newTrabalhador, trabalhador.getSetor());
+                this.historicoTrabalhadorService.setRegistroSetor(trabalhador, newTrabalhador.getSetor());
                 trabalhador.setSetor(newTrabalhador.getSetor());
             }
 
@@ -259,9 +264,7 @@ public class TrabalhadorService {
                 }
             }
 
-
-
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Falha ao atualizar entidade Trabalhador: "+e.getMessage());
             throw new RuntimeException("Failed to update entity Trabalhador");
@@ -272,7 +275,7 @@ public class TrabalhadorService {
     public List<Trabalhador> listAll() {
         this.LOG.info("Preparando para listagem dos Trabalhadores...");
         List<Trabalhador> trabalhadores = this.trabalhadorDAO.listAll();
-        validateNullList(trabalhadores);
+        validateNullList(Collections.singletonList(trabalhadores),"trabalhador");
         if(trabalhadores != null) {
             this.LOG.info(trabalhadores.size()+" trabalhador(es) encontrado(s)");
         }
@@ -281,9 +284,9 @@ public class TrabalhadorService {
 
     public List<Trabalhador> listByName(String nome) {
         this.LOG.info("Preparando para listagem dos Trabalhadores pelo nome...");
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         List<Trabalhador> trabalhadores = this.trabalhadorDAO.listByName(nome);
-        validateNullList(trabalhadores);
+        validateNullList(Collections.singletonList(trabalhadores),"trabalhador");
         if(trabalhadores != null) {
             this.LOG.info(trabalhadores.size()+" trabalhador(es) encontrado(s)");
         }
@@ -293,7 +296,7 @@ public class TrabalhadorService {
 
     public Trabalhador findByCpf(String cpf) {
         this.LOG.info("Preparando para buscar trabalhador pelo cpf...");
-        validateNullCpf(cpf);
+        validateNullString(cpf,"cpf");
 
         try {
             this.LOG.info("Verificando se existe trabalhador com o cpf informado...");
@@ -308,9 +311,9 @@ public class TrabalhadorService {
 
     public Trabalhador getById(Long id) {
         validateNullId(id);
-        this.LOG.info("Verificano se existe Trabalhador com o Id informado...");
+        this.LOG.info("Verificando se existe Trabalhador com o Id informado...");
         Trabalhador trabalhador = this.trabalhadorDAO.getById(id);
-        validateNullTrabalhador(trabalhador);
+        validateNullObject(trabalhador,"trabalhador");
         if(trabalhador != null) {
             this.LOG.info("Trabalhador encontrado!");
         }
@@ -324,97 +327,5 @@ public class TrabalhadorService {
             this.LOG.error("O usuário informado já existe no banco de dados");
             throw new EntityExistsException("Entity Usuario already exists");
         }
-    }
-
-    public List<Trabalhador> validateNullList(List<Trabalhador> trabalhadores) {
-        this.LOG.info("Verificando se existe registros de trabalhador");
-        if(trabalhadores == null) {
-            this.LOG.info("Não foram encontrados trabalhadores.");
-            return new ArrayList<>();
-        }
-        return trabalhadores;
-    }
-
-    private void validateNullId(Long id) {
-        this.LOG.info("Verificando se o id informado é nulo...");
-        if(id == null) {
-            this.LOG.error("O id informado é nulo");
-            throw new RuntimeException("Id is null");
-        }
-    }
-
-    private void validateNullName(String nome) {
-        this.LOG.info("Verificando se o nome informado é nulo...");
-        if(nome == null || nome.isEmpty() || nome.isBlank()) {
-            this.LOG.error("O nome informado é vazio ou nulo");
-            throw new RuntimeException("nome is empty or null");
-        }
-    }
-
-    private void validateNullCpf(String cpf) {
-        this.LOG.info("Verificando se o cpf informado é nulo...");
-        if(cpf == null || cpf.isEmpty() || cpf.isBlank()) {
-            this.LOG.error("O cpf informado é vazio ou nulo");
-            throw new RuntimeException("cpf is empty or null");
-        }
-    }
-
-    private void validateNullTrabalhador(Trabalhador trabalhador) {
-        this.LOG.info("Verificando se o trabalhador é nulo...");
-        if(trabalhador == null) {
-            this.LOG.error("Entidade trabalhador não encontrado");
-            throw new EntityNotFoundException("Entity Trabalhador not found");
-        }
-    }
-
-    private void validateCpfTemplate(String cpf) {
-        this.LOG.info("Verificando se o cpf está correto...");
-        if(!cpf.matches(this.CPF_TEMPLATE)){
-            this.LOG.error("O formato do cpf está incorreto");
-            throw new RuntimeException("Wrong cpf format");
-        }
-    }
-
-    public void setPrimeiroRegistro(Trabalhador trabalhador) {
-        String registro = "Trabalhador "+trabalhador.getNome()+" possui " +trabalhador.getTrilha().size()+
-                " trilha(s) executada(s) e vinculada(s) ao Setor: "+trabalhador.getSetor().getNome()+
-                " ou Função: "+trabalhador.getFuncao().getNome();
-        escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
-    }
-
-    public void setRegistroEmpresa(Trabalhador trabalhador, Empresa empresa) {
-        if(!trabalhador.getEmpresa().getCnpj().equals(empresa.getCnpj())) {
-            this.LOG.info("registrando mudança de empresa...");
-            String registro = "Trabalhador "+trabalhador.getNome()+" mudou para a empresa "+empresa.getNome();
-            escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
-        }
-    }
-
-    public void setRegistroSetor(Trabalhador trabalhador, Setor setor) {
-        if(!trabalhador.getSetor().getNome().equals(setor.getNome())) {
-            this.LOG.info("registrando mudança de setor...");
-            String registro = "Trabalhador "+trabalhador.getNome()+" mudou para o setor "+setor.getNome();
-            escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
-        }
-    }
-
-    public void setRegistroFuncao(Trabalhador trabalhador, Funcao funcao) {
-        if(!trabalhador.getFuncao().getNome().equals(funcao.getNome())) {
-            this.LOG.info("Registrando mudança de função...");
-                trabalhador.setDataAlteracaoDaFuncao(OffsetDateTime.now());
-                String registro = "Trabalhador "+trabalhador.getNome()+" mudou para a função "+funcao.getNome();
-                escreverNoArquivo(trabalhador.getNomeArquivo(),registro);
-        }
-    }
-
-    private void beginTransaction() {
-        this.LOG.info("Iniciando transação...");
-        this.em.getTransaction().begin();
-    }
-
-    private void commitAndClose() {
-        this.LOG.info("Commitando e fechando transação...");
-        this.em.getTransaction().commit();
-        this.em.close();
     }
 }

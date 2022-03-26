@@ -1,19 +1,20 @@
 package habilitipro.service;
 
+import habilitipro.connection.Transaction;
 import habilitipro.enums.Perfis;
 import habilitipro.enums.Status;
 import habilitipro.model.dao.UsuarioDAO;
 import habilitipro.model.persistence.Modulo;
 import habilitipro.model.persistence.Trilha;
 import habilitipro.model.persistence.Usuario;
-import habilitipro.util.Input;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.persistence.*;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import static habilitipro.util.Input.*;
+import static habilitipro.util.Validation.*;
 
 public class UsuarioService {
 
@@ -23,23 +24,15 @@ public class UsuarioService {
 
     private UsuarioDAO usuarioDAO;
 
-    private TrilhaService trilhaService;
-
     private ModuloService moduloService;
 
-    private final String EMAIL_TEMPLATE = "[a-zA-Z0-9]+@[a-zA-Z]+.+[a-zA-Z]";
-
-    private final String CPF_TEMPLATE = "\\d\\d\\d\\d\\d\\d\\d\\d\\d\\d\\d";
-
-    private final String SENHA_TEMPLATE = "[a-zA-Z0-9]+";
-
-
+    private Transaction transaction;
 
     public UsuarioService(EntityManager em) {
         this.em = em;
         this.usuarioDAO = new UsuarioDAO(em);
-        this.trilhaService = new TrilhaService(em);
         this.moduloService = new ModuloService(em);
+        this.transaction = new Transaction(em);
     }
 
     public void login() {
@@ -78,7 +71,7 @@ public class UsuarioService {
 
     public void create(Usuario usuario) {
         this.LOG.info("Preparando para criação de usuário...");
-        validateNullUsuario(usuario);
+        validateNullObject(usuario,"usuário");
         validateDuplicate(usuario);
 
             validateCpfTemplate(usuario.getCpf());
@@ -86,9 +79,9 @@ public class UsuarioService {
             validateSenhaTemplate(usuario.getSenha());
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.usuarioDAO.create(usuario);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Falha ao criar entidade usuário: "+e.getMessage());
             throw new RuntimeException("Failed to create entity Usuario");
@@ -101,14 +94,14 @@ public class UsuarioService {
         validateNullId(id);
         this.LOG.info("Verificando se existe usuário com o Id informado...");
         Usuario usuario = this.usuarioDAO.getById(id);
-        validateNullUsuario(usuario);
+        validateNullObject(usuario,"usuário");
 
         this.LOG.info("Usuário encontrado! Iniciando deleção...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.usuarioDAO.delete(usuario);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.info("Falha ao deletar entidade usuário; "+e.getMessage());
             throw new RuntimeException("Failed to delete entity Usuario");
@@ -119,10 +112,10 @@ public class UsuarioService {
     public void update(Usuario newUsuario, Long usuarioId) {
         this.LOG.info("Preparando para atualização de usuário...");
         validateNullId(usuarioId);
-        validateNullUsuario(newUsuario);
+        validateNullObject(newUsuario,"usuário");
         this.LOG.info("Verificando se existe usuário com o id informado...");
         Usuario usuario = this.usuarioDAO.getById(usuarioId);
-        validateNullUsuario(usuario);
+        validateNullObject(usuario,"usuário");
 
         this.LOG.info("Usuário encontrado! Iniciando atualização...");
 
@@ -131,7 +124,7 @@ public class UsuarioService {
         }
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
 
             usuario.setPerfisDeAcesso(newUsuario.getPerfisDeAcesso());
             usuario.setNome(newUsuario.getNome());
@@ -142,7 +135,7 @@ public class UsuarioService {
             validateSenhaTemplate(newUsuario.getSenha());
             usuario.setSenha(newUsuario.getSenha());
 
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.info("Falha ao atualizar usuário: "+e.getMessage());
             throw new RuntimeException("Failed to update entity Usuario");
@@ -154,7 +147,7 @@ public class UsuarioService {
     public List<Usuario> listAll() {
         this.LOG.info("Preparando listagem dos usuários...");
         List<Usuario> usuarios = this.usuarioDAO.listAll();
-        validateNullList(usuarios);
+        validateNullList(Collections.singletonList(usuarios),"usuário");
 
         if(usuarios != null) {
             this.LOG.info(usuarios.size()+" usuário(s) encontrado(s)");
@@ -164,9 +157,9 @@ public class UsuarioService {
 
     public List<Usuario> listByName(String nome) {
         this.LOG.info("Preparando listagem de usuários pelo nome...");
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         List<Usuario> usuarios = this.usuarioDAO.listByName(nome.toLowerCase());
-        validateNullList(usuarios);
+        validateNullList(Collections.singletonList(usuarios),"usuário");
 
         if(usuarios != null){
             this.LOG.info(usuarios.size()+" usuário(s) encontrado(s)");
@@ -174,37 +167,10 @@ public class UsuarioService {
         return usuarios;
     }
 
-    private void validateCpfTemplate(String cpf) {
-        this.LOG.info("Verificando se o cpf está correto...");
-        if(!cpf.matches(this.CPF_TEMPLATE)){
-            this.LOG.error("O formato do cpf está incorreto");
-            throw new RuntimeException("Wrong cpf format");
-        }
-    }
-
-    private void validateSenhaTemplate(String senha) {
-        this.LOG.info("Verificando se a senha se encontra dentro da regra de negócio...");
-        if(!senha.matches(this.SENHA_TEMPLATE)){
-            this.LOG.error("A senha deve conter somente caracteres alfanuméricos (números e letras)");
-            throw new RuntimeException("Password must contain only alphanumeric characters");
-        }else if(senha.length()<8) {
-            this.LOG.error("A senha deve conter pelo menos 8 caracteres");
-            throw new RuntimeException("Password must contain at least 8 characters");
-        }
-    }
-
-    private void validateEmailTemplate(String email) {
-        this.LOG.info("Verificando se o email é valido...");
-        if(!email.matches(this.EMAIL_TEMPLATE)) {
-            this.LOG.error("Email deve conter o seguinte formato: usuário@domínio.terminação");
-            throw new RuntimeException("Email must contain the following format: user@domain.termination");
-        }
-    }
-
-
     public Usuario findByCpf(String cpf) {
         this.LOG.info("Preparando para buscar usuário pelo cpf...");
-        validateNullCpf(cpf);
+        validateNullString(cpf,"cpf");
+        validateCpfTemplate(cpf);
 
         try {
             this.LOG.info("Verificando se existe Usuário com o cpf informado...");
@@ -219,7 +185,8 @@ public class UsuarioService {
 
     public Usuario findByEmail(String email) {
         this.LOG.info("Preparando para buscar usuário pelo email...");
-        validateNullEmail(email);
+        validateNullString(email,"email");
+        validateEmailTemplate(email);
 
         try {
             this.LOG.info("Verificando se existe Usuário com o email informado...");
@@ -237,7 +204,7 @@ public class UsuarioService {
         validateNullId(id);
         this.LOG.info("Verificando se existe Usuário com o id informado...");
         Usuario usuario = this.usuarioDAO.getById(id);
-        validateNullUsuario(usuario);
+        validateNullObject(usuario,"usuario");
         if(usuario != null) {
             this.LOG.info("Usuário encontrado!");
         }
@@ -257,73 +224,5 @@ public class UsuarioService {
             this.LOG.error("O usuário informado já existe no banco de dados");
             throw new EntityExistsException("Entity Usuario already exists");
         }
-    }
-
-    public List<Usuario> validateNullList(List<Usuario> usuarios) {
-        this.LOG.info("Verificando se existe registros de usuário");
-        if(usuarios == null) {
-            this.LOG.info("Não foram encontrados usuários.");
-            return new ArrayList<>();
-        }
-        return usuarios;
-    }
-
-    private void validateNullId(Long id) {
-        this.LOG.info("Verificando se o id informado é nulo...");
-        if(id == null) {
-            this.LOG.error("O id informado é nulo");
-            throw new RuntimeException("Id is null");
-        }
-    }
-
-    private void validateNullName(String nome) {
-        this.LOG.info("Verificando se o nome informado é nulo...");
-        if(nome == null || nome.isEmpty() || nome.isBlank()) {
-            this.LOG.error("O nome informado é vazio ou nulo");
-            throw new RuntimeException("nome is empty or null");
-        }
-    }
-
-    private void validateNullCpf(String cpf) {
-        this.LOG.info("Verificando se o cpf informado é nulo...");
-        if(cpf == null || cpf.isEmpty() || cpf.isBlank()) {
-            this.LOG.error("O cpf informado é vazio ou nulo");
-            throw new RuntimeException("cpf is empty or null");
-        }
-    }
-
-    private void validateNullEmail(String email) {
-        this.LOG.info("Verificando se o email informado é nulo...");
-        if(email == null || email.isEmpty() || email.isBlank()) {
-            this.LOG.error("O email informado é vazio ou nulo");
-            throw new RuntimeException("email is empty or null");
-        }
-    }
-
-    private void validateNullSenha(String senha) {
-        this.LOG.info("Verificando se a senha informada é nula...");
-        if(senha == null || senha.isEmpty() || senha.isBlank()) {
-            this.LOG.error("A senha informada é vazia ou nula");
-            throw new RuntimeException("senha is empty or null");
-        }
-    }
-
-    private void validateNullUsuario(Usuario usuario) {
-        this.LOG.info("Verificando se o usuário é nulo...");
-        if(usuario == null) {
-            this.LOG.error("Entidade usuário não encontrado");
-            throw new EntityNotFoundException("Entity Usuario not found");
-        }
-    }
-
-    private void beginTransaction() {
-        this.LOG.info("Iniciando transação...");
-        this.em.getTransaction().begin();
-    }
-
-    private void commitAndClose() {
-        this.LOG.info("Commitando e fechando transação...");
-        this.em.getTransaction().commit();
-        this.em.close();
     }
 }

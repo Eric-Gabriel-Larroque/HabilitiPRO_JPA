@@ -1,9 +1,9 @@
 package habilitipro.service;
 
+import habilitipro.connection.Transaction;
 import habilitipro.enums.Status;
 import habilitipro.model.dao.ModuloDAO;
 import habilitipro.model.dao.TrilhaDAO;
-import habilitipro.model.persistence.Empresa;
 import habilitipro.model.persistence.Modulo;
 import habilitipro.model.persistence.Trilha;
 import org.apache.logging.log4j.LogManager;
@@ -11,8 +11,10 @@ import org.apache.logging.log4j.Logger;
 
 import javax.persistence.*;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static habilitipro.util.Validation.*;
 
 public class ModuloService {
 
@@ -26,17 +28,20 @@ public class ModuloService {
 
     private TrilhaDAO trilhaDAO;
 
+    private Transaction transaction;
+
     public ModuloService(EntityManager em) {
         this.em = em;
         this.moduloDAO = new ModuloDAO(em);
         this.trilhaService = new TrilhaService(em);
         this.trilhaDAO = new TrilhaDAO(em);
+        this.transaction = new Transaction(em);
 
     }
 
     public void create(Modulo modulo) {
         this.LOG.info("Preparando para criação do módulo...");
-        validateNullModulo(modulo);
+        validateNullObject(modulo,"módulo");
         validateDuplicate(modulo);
 
         this.LOG.info("Verificando se já existe trilha do módulo informado...");
@@ -49,9 +54,9 @@ public class ModuloService {
         }
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.moduloDAO.create(modulo);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao criar o módulo: "+e.getMessage());
             throw new RuntimeException("Failed to create entity Modulo");
@@ -63,13 +68,13 @@ public class ModuloService {
         validateNullId(id);
         this.LOG.info("Verificando se existe módulo com o Id informado...");
         Modulo modulo = this.moduloDAO.getById(id);
-        validateNullModulo(modulo);
+        validateNullObject(modulo,"módulo");
         this.LOG.info("Módulo encontrado! Iniciando deleção...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.moduloDAO.delete(modulo);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao tentar deletar o módulo: "+e.getMessage());
             throw new RuntimeException("Failed to delete entity Modulo");
@@ -80,14 +85,14 @@ public class ModuloService {
     public void update(Modulo newModulo, Long moduloId) {
         this.LOG.info("Preparando para atualizar o módulo");
         validateNullId(moduloId);
-        validateNullModulo(newModulo);
+        validateNullObject(newModulo,"módulo");
         this.LOG.info("Verificando se existe módulo com o id informado...");
         Modulo modulo = this.moduloDAO.getById(moduloId);
-        validateNullModulo(modulo);
+        validateNullObject(modulo,"módulo");
         this.LOG.info("Módulo encontrado, iniciando atualização...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.moduloDAO.update(modulo);
             modulo.setPrazoLimite(newModulo.getPrazoLimite());
             modulo.setHabilidadesTrabalhadas(newModulo.getHabilidadesTrabalhadas());
@@ -103,7 +108,7 @@ public class ModuloService {
             }else {
                 modulo.setTrilha(newModulo.getTrilha());
             }
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Falha ao tentar atualizar Modulo: "+e.getMessage());
             throw new RuntimeException("Failed to update entity Modulo");
@@ -114,7 +119,7 @@ public class ModuloService {
     public List<Modulo> listAll() {
         this.LOG.info("Preparando listagem dos módulos...");
         List<Modulo> modulos = this.moduloDAO.listAll();
-        validateNullList(modulos);
+        validateNullList(Collections.singletonList(modulos),"módulo");
 
         if(modulos != null) {
             this.LOG.info(modulos.size()+" módulo(s) encontrado(s)");
@@ -124,9 +129,9 @@ public class ModuloService {
 
     public List<Modulo> listByName(String nome) {
         this.LOG.info("Preparando listagem de módulos pelo nome...");
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         List<Modulo> modulos = this.moduloDAO.listByName(nome.toLowerCase());
-        validateNullList(modulos);
+        validateNullList(Collections.singletonList(modulos),"módulo");
 
         if(modulos != null){
             this.LOG.info(modulos.size()+" módulo(s) encontrado(s)");
@@ -138,7 +143,7 @@ public class ModuloService {
         this.LOG.info("Preparando listagem de módulos pelo id da trilha...");
         validateNullId(trilha_id);
         List<Modulo> modulos = this.moduloDAO.listByTrilhaId(trilha_id);
-        validateNullList(modulos);
+        validateNullList(Collections.singletonList(modulos),"módulo");
 
         if(modulos != null) {
             this.LOG.info(modulos.size()+" módulo(s) encontrado(s)");
@@ -147,7 +152,7 @@ public class ModuloService {
     }
 
     public Modulo findByName(String nome) {
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         try {
             this.LOG.info("Verificando se existe módulo com o nome informado...");
             Modulo modulo = this.moduloDAO.findByName(nome.toLowerCase());
@@ -167,7 +172,7 @@ public class ModuloService {
         validateNullId(id);
         this.LOG.info("Verificando se existe módulo com o id informado...");
         Modulo modulo = this.moduloDAO.getById(id);
-        validateNullModulo(modulo);
+        validateNullObject(modulo,"módulo");
         if(modulo != null) {
             this.LOG.info("Módulo encontrado!");
         }
@@ -181,39 +186,6 @@ public class ModuloService {
         if(modulo1 != null) {
             this.LOG.error("O módulo informado já existe no banco de dados");
             throw new EntityExistsException("Entity Modulo already exists");
-        }
-    }
-
-    public List<Modulo> validateNullList(List<Modulo> modulos) {
-        this.LOG.info("Verificando se existe registros de módulo");
-        if(modulos == null) {
-            this.LOG.info("Não foram encontrados módulos.");
-            return new ArrayList<>();
-        }
-        return modulos;
-    }
-
-    private void validateNullId(Long id) {
-        this.LOG.info("Verificando se o id informado é nulo...");
-        if(id == null) {
-            this.LOG.error("O id informado é nulo");
-            throw new RuntimeException("Id is null");
-        }
-    }
-
-    private void validateNullName(String nome) {
-        this.LOG.info("Verificando se o nome informado é nulo...");
-        if(nome == null || nome.isEmpty() || nome.isBlank()) {
-            this.LOG.error("O nome informado é vazio ou nulo");
-            throw new RuntimeException("nome is empty or null");
-        }
-    }
-
-    private void validateNullModulo(Modulo modulo) {
-        this.LOG.info("Verificando se o módulo é nulo...");
-        if(modulo == null) {
-            this.LOG.error("Entidade módulo não encontrado");
-            throw new EntityNotFoundException("Entity Modulo not found");
         }
     }
 
@@ -234,7 +206,7 @@ public class ModuloService {
     }
 
     public void setStatus(Modulo modulo, Status status) {
-        beginTransaction();
+        transaction.beginTransaction();
         this.moduloDAO.update(modulo);
         setDataInicio(modulo,status);
         setDataFim(modulo,status);
@@ -243,52 +215,41 @@ public class ModuloService {
             this.LOG.info("Verificando se o status foi definido como 'Finalizado'...");
             modulo.setStatus(Status.FINALIZADO);
         }
-        commitAndClose();
+        transaction.commitAndClose();
     }
 
     public void setNivelSatisfacao(Trilha trilha, int nivelSatisfacao) {
         final String NIVEL_SATISFACAO_TEMPLATE = "^[1-5]";
-        beginTransaction();
+        transaction.beginTransaction();
         this.LOG.info("Preparando para inserir o nivel de satisfacao da trilha...");
         trilhaDAO.update(trilha);
 
         this.LOG.info("Listando módulos que compõem a trilha");
         List<Modulo> modulos = listByTrilhaId(trilha.getId());
-        validateNullList(modulos);
+        validateNullList(Collections.singletonList(modulos),"módulo");
 
         if(modulos != null && String.valueOf(nivelSatisfacao).matches(NIVEL_SATISFACAO_TEMPLATE) &&
                 modulos.stream().filter(m->m.getStatus().equals(Status.FINALIZADO))
                         .toArray().length== modulos.size()) {
             trilha.setNivelSatisfacaoGeral(nivelSatisfacao);
         }
-        commitAndClose();
+        transaction.commitAndClose();
     }
 
     public void setAnotacoes(Trilha trilha, String anotacoes) {
         this.LOG.info("Preparando para inserir as anotações da trilha...");
-        beginTransaction();
+        transaction.beginTransaction();
         trilhaDAO.update(trilha);
 
         this.LOG.info("Listando módulos que compõem a trilha");
         List<Modulo> modulos = listByTrilhaId(trilha.getId());
-        validateNullList(modulos);
+        validateNullList(Collections.singletonList(modulos),"módulo");
 
         if(modulos != null && modulos.stream().
                 filter(m->m.getStatus().equals(Status.FINALIZADO))
                 .toArray().length== modulos.size()) {
             trilha.setAnotacoes(anotacoes);
         }
-        commitAndClose();
-    }
-
-    private void beginTransaction() {
-        this.LOG.info("Iniciando transação...");
-        this.em.getTransaction().begin();
-    }
-
-    private void commitAndClose() {
-        this.LOG.info("Commitando e fechando transação...");
-        this.em.getTransaction().commit();
-        this.em.close();
+        transaction.commitAndClose();
     }
 }

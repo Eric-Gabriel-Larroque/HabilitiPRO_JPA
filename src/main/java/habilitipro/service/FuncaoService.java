@@ -1,5 +1,6 @@
 package habilitipro.service;
 
+import habilitipro.connection.Transaction;
 import habilitipro.model.dao.FuncaoDAO;
 import habilitipro.model.persistence.Funcao;
 import org.apache.logging.log4j.LogManager;
@@ -7,10 +8,11 @@ import org.apache.logging.log4j.Logger;
 
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
 import javax.persistence.NoResultException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static habilitipro.util.Validation.*;
 
 public class FuncaoService {
 
@@ -20,20 +22,23 @@ public class FuncaoService {
 
     private FuncaoDAO funcaoDAO;
 
+    private Transaction transaction;
+
     public FuncaoService(EntityManager em) {
         this.em = em;
         this.funcaoDAO = new FuncaoDAO(em);
+        this.transaction = new Transaction(em);
     }
 
     public void create(Funcao funcao) {
         this.LOG.info("Preparando criação de função...");
-        validateNullFuncao(funcao);
+        validateNullObject(funcao,"função");
         validateDuplicate(funcao);
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.funcaoDAO.create(funcao);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao criar função: "+e.getMessage());
             throw new RuntimeException("Failed to create entity Funcao");
@@ -45,13 +50,13 @@ public class FuncaoService {
         this.LOG.info("Preparando para deleção da Função...");
         validateNullId(id);
         Funcao funcao = this.funcaoDAO.getById(id);
-        validateNullFuncao(funcao);
+        validateNullObject(funcao,"função");
         this.LOG.info("Função encontrada! Iniciando deleção...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.funcaoDAO.delete(funcao);
-            commitAndClose();
+            transaction.commitAndClose();
         }catch (Exception e) {
             this.LOG.error("Erro ao deletar função: "+e.getMessage());
             throw new RuntimeException("Failed to delete Funcao");
@@ -62,23 +67,23 @@ public class FuncaoService {
     public void update(Funcao newFuncao, Long funcaoId) {
         this.LOG.info("Preparando para atualização da função...");
         validateNullId(funcaoId);
-        validateNullFuncao(newFuncao);
+        validateNullObject(newFuncao,"função");
         this.LOG.info("Validando existência de função com o Id informado");
         Funcao funcao = this.funcaoDAO.getById(funcaoId);
-        validateNullFuncao(funcao);
+        validateNullObject(funcao,"função");
         this.LOG.info("Função encontrada! Iniciando atualização...");
 
         try {
-            beginTransaction();
+            transaction.beginTransaction();
             this.funcaoDAO.update(funcao);
             if(funcao.getNome().equals(newFuncao.getNome())) {
                 this.LOG.info("A função atual já contém os dados atualizados");
-                commitAndClose();
+                transaction.commitAndClose();
                 return;
             }
             validateDuplicate(newFuncao);
             funcao.setNome(newFuncao.getNome());
-            commitAndClose();
+            transaction.commitAndClose();
 
         }catch (Exception e) {
             this.LOG.error("Erro ao atualizar função: "+e.getMessage());
@@ -90,7 +95,7 @@ public class FuncaoService {
     public List<Funcao> listAll() {
         this.LOG.info("Preparando listagem das funções...");
         List<Funcao> funcoes = this.funcaoDAO.listAll();
-        validateNullList(funcoes);
+        validateNullList(Collections.singletonList(funcoes),"função");
 
         if(funcoes != null) {
             this.LOG.info(funcoes.size()+" funç(ão/ões) encontrada(s)");
@@ -100,9 +105,9 @@ public class FuncaoService {
 
     public List<Funcao> listByName(String nome) {
         this.LOG.info("Preparando listagem de funções pelo nome...");
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         List<Funcao> funcoes = this.funcaoDAO.listByName(nome.toLowerCase());
-        validateNullList(funcoes);
+        validateNullList(Collections.singletonList(funcoes),"função");
 
         if(funcoes != null){
             this.LOG.info(funcoes.size()+" funç(ão/ões) encontrada(s)");
@@ -111,7 +116,7 @@ public class FuncaoService {
     }
 
     public Funcao findByName(String nome) {
-        validateNullName(nome);
+        validateNullString(nome,"nome");
         try {
             this.LOG.info("Verificando se existe função com o nome informado...");
             Funcao funcao = this.funcaoDAO.findByName(nome.toLowerCase());
@@ -128,7 +133,7 @@ public class FuncaoService {
         validateNullId(id);
         this.LOG.info("Verificando se existe função com o id informado...");
         Funcao funcao = this.funcaoDAO.getById(id);
-        validateNullFuncao(funcao);
+        validateNullObject(funcao,"função");
         if(funcao != null) {
             this.LOG.info("Função encontrada!");
         }
@@ -143,49 +148,5 @@ public class FuncaoService {
             this.LOG.error("A função informada já existe no banco de dados");
             throw new EntityExistsException("Entity Funcao already exists");
         }
-    }
-
-    private List<Funcao> validateNullList(List<Funcao> funcoes) {
-        this.LOG.info("Verificando se existe registros de função");
-        if(funcoes == null) {
-            this.LOG.info("Não foram encontradas funções.");
-            return new ArrayList<>();
-        }
-        return funcoes;
-    }
-
-    private void validateNullId(Long id) {
-        this.LOG.info("Verificando se o id informado é nulo...");
-        if(id == null) {
-            this.LOG.error("O id informado é nulo");
-            throw new RuntimeException("Id is null");
-        }
-    }
-
-    private void validateNullName(String nome) {
-        this.LOG.info("Verificando se o nome informado é nulo...");
-        if(nome == null || nome.isEmpty() || nome.isBlank()) {
-            this.LOG.error("O nome informado é vazio ou nulo");
-            throw new RuntimeException("nome is empty or null");
-        }
-    }
-
-    private void validateNullFuncao(Funcao funcao) {
-        this.LOG.info("Verificando se a função é nula...");
-        if(funcao == null) {
-            this.LOG.error("Entidade função não encontrada");
-            throw new EntityNotFoundException("Entity Funcao not found");
-        }
-    }
-
-    private void beginTransaction() {
-        this.LOG.info("Iniciando transação...");
-        this.em.getTransaction().begin();
-    }
-
-    private void commitAndClose() {
-        this.LOG.info("Commitando e fechando transação...");
-        this.em.getTransaction().commit();
-        this.em.close();
     }
 }
