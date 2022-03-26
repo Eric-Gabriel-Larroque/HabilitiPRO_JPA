@@ -54,22 +54,18 @@ public class Trabalhador {
     @Column(nullable = false)
     private OffsetDateTime dataAlteracaoDaFuncao;
 
+    @OneToOne(mappedBy = "trabalhador")
+    private HistoricoTrabalhador historicoTrabalhador;
+
 
     // Regra de negócio para registro em arquivo a cada alteração de
     // Empresa, Função, Setor, ou vinculação à trilha feita pelo trabalhador
-    @Transient
-    private String nomeArquivo;
-
-    private HashMap<String,Modulo> anotacoes;
-
-    private HashMap<Integer, Modulo> scores;
 
     public Trabalhador() {}
 
     public Trabalhador(String nome, String cpf, Empresa empresa, Setor setor, Funcao funcao, Set<Trilha> trilhas, Set<Modulo> modulos) {
         this.nome = nome.toLowerCase();
         this.cpf = cpf;
-        this.nomeArquivo = "registros_trabalhadores/registro_trabalhador_"+this.getNome().toLowerCase()+"_"+this.getCpf()+".txt";
         this.empresa = empresa;
         this.setor = setor;
         this.funcao = funcao;
@@ -142,16 +138,20 @@ public class Trabalhador {
         this.dataAlteracaoDaFuncao = dataAlteracaoDaFuncao;
     }
 
-    public String getNomeArquivo() {
-        return this.nomeArquivo;
-    }
-
     public Set<Modulo> getModulos() {
         return modulos;
     }
 
     public void setModulos(Set<Modulo> modulos) {
         this.modulos = modulos;
+    }
+
+    public HistoricoTrabalhador getHistoricoTrabalhador() {
+        return historicoTrabalhador;
+    }
+
+    public void setHistoricoTrabalhador(HistoricoTrabalhador historicoTrabalhador) {
+        this.historicoTrabalhador = historicoTrabalhador;
     }
 
     @Override
@@ -166,6 +166,7 @@ public class Trabalhador {
                 ", trilha=" + trilhas +
                 ", modulo=" + modulos +
                 ", dataAlteracaoDaFuncao=" + dataAlteracaoDaFuncao +
+                ", historico=" + historicoTrabalhador +
                 '}';
     }
 }
