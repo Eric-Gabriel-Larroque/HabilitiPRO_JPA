@@ -1,6 +1,5 @@
 package habilitipro.model.dao;
 
-import habilitipro.model.persistence.Anotacao;
 import habilitipro.model.persistence.Score;
 
 import javax.persistence.EntityManager;
