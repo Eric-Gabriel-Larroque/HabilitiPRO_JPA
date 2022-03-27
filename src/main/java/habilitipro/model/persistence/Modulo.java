@@ -61,10 +61,6 @@ public class Modulo {
         return id;
     }
 
-    public void setId(long id) {
-        this.id = id;
-    }
-
     public Trilha getTrilha() {
         return trilha;
     }
